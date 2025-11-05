@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <title>برچسب‌های اسپرت</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>🎽برچسب‌های ست </h1>
+  </header>
+
+  <nav>
+    <a href="index.html">همه</a>
+    <a href="sport.html">اسپرت</a>
+    <a href="women.html">زنانه</a>
+    <a href="men.html">مردانه</a>
+    <a href="kids.html">بچه‌گانه</a>
+    <a href="set.html">ست</a>
+  </nav>
+
+  <main class="gallery"></main>
+
+  <footer>© 2025 برند شما</footer>
+
+  <script src="script.js"></script>
+  <script>
+    const sportLabels = [
+      { file: "sport1.jpg", name: "ست ۱", date: new Date("2025-10-01") },
+      { file: "sport2.jpg", name: "ست ۲", date: new Date("2025-10-03") }
+    ];
+    createGallery(sportLabels);
+  </script>
+</body>
+</html>
