@@ -1,0 +1,46 @@
+body {
+  font-family: "Vazir", sans-serif;
+  background-color: #f8f8f8;
+  text-align: center;
+  direction: rtl;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background-color: #111;
+  color: #fff;
+  padding: 20px;
+}
+
+#gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 15px;
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+#gallery img {
+  width: 100%;
+  border-radius: 12px;
+  transition: 0.3s;
+  cursor: pointer;
+}
+
+#gallery img:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+#selected-label {
+  margin-top: 40px;
+}
+
+#selected-img {
+  max-width: 200px;
+  border: 3px solid #222;
+  border-radius: 12px;
+  margin-top: 10px;
+}
