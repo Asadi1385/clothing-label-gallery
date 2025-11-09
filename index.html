@@ -1,39 +1,244 @@
 <!DOCTYPE html>
 <html lang="fa">
 <head>
-  <meta charset="UTF-8">
-  <title>آلبوم برچسب‌ها - همه</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TERIKO ASADI - آلبوم برچسب‌ها</title>
   <link rel="stylesheet" href="style.css">
+  <!-- Firebase (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
-  <header>
-    <h1>🎽 آلبوم برچسب‌های برند</h1>
-    <p>تمام برچسب‌ها به ترتیب جدیدترین</p>
+  <header class="site-header">
+    <div class="header-inner">
+      <img src="images/logo.png" alt="TERIKO ASADI" class="logo">
+      <div class="brand-text">
+        <h1>TERIKO ASADI</h1>
+        <p class="tagline">نه نگران جنس باش، نه نگران سایز — دقیقاً همون‌جور که خودت می‌خوای.</p>
+      </div>
+    </div>
+    <button id="uploadBtn" class="upload-btn">➕ افزودن برچسب جدید</button>
   </header>
 
-  <nav>
-    <a href="index.html">همه</a>
-    <a href="sport.html">اسپرت</a>
-    <a href="women.html">زنانه</a>
-    <a href="men.html">مردانه</a>
-    <a href="kids.html">بچه‌گانه</a>
-    <a href="set.html">ست</a>
+  <nav class="main-nav">
+    <button class="nav-btn active" data-cat="all">همه</button>
+    <button class="nav-btn" data-cat="sport">اسپرت</button>
+    <button class="nav-btn" data-cat="women">زنانه</button>
+    <button class="nav-btn" data-cat="men">مردانه</button>
+    <button class="nav-btn" data-cat="kids">بچه‌گانه</button>
+    <button class="nav-btn" data-cat="set">ست</button>
   </nav>
 
-  <main class="gallery"></main>
+  <main class="container">
+    <section id="gallery" class="gallery" aria-live="polite"></section>
+  </main>
 
-  <footer>© 2025 برند شما</footer>
+  <footer class="site-footer">© 2025 TERIKO ASADI</footer>
 
-  <script src="script.js"></script>
+  <!-- Upload Modal -->
+  <div id="uploadModal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+      <button class="close-modal" id="closeUpload">✕</button>
+      <h2>آپلود برچسب جدید</h2>
+      <form id="uploadForm">
+        <label>نام برچسب
+          <input type="text" id="labelName" placeholder="مثلاً: برچسب زیبا" required>
+        </label>
+        <label>دسته‌بندی
+          <select id="labelCategory" required>
+            <option value="sport">اسپرت</option>
+            <option value="women">زنانه</option>
+            <option value="men">مردانه</option>
+            <option value="kids">بچه‌گانه</option>
+            <option value="set">ست</option>
+          </select>
+        </label>
+        <label>عکس
+          <input type="file" id="labelFile" accept="image/*" required>
+        </label>
+        <div class="actions">
+          <button type="submit" class="primary">آپلود کن</button>
+        </div>
+        <div id="uploadProgress" class="progress" hidden>
+          <div id="progressBar" class="progress-bar"></div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lightbox Modal -->
+  <div id="lightbox" class="lightbox" aria-hidden="true">
+    <div class="lightbox-inner">
+      <button id="closeLightbox" class="close-lightbox">✕</button>
+      <img id="lightboxImg" src="" alt="">
+      <p id="lightboxCaption"></p>
+    </div>
+  </div>
+
   <script>
-    const allLabels = [
-      { file: "sport1.jpg", name: "اسپرت ۱", date: new Date("2025-10-01") },
-      { file: "women1.jpg", name: "زنانه ۱", date: new Date("2025-10-02") },
-      { file: "men1.jpg", name: "مردانه ۱", date: new Date("2025-10-03") },
-      { file: "kids1.jpg", name: "بچه‌گانه ۱", date: new Date("2025-10-04") },
-      { file: "set1.jpg", name: "ست ۱", date: new Date("2025-10-05") }
-    ];
-    createGallery(allLabels);
+    // ====== Firebase config (use your own) ======
+    const firebaseConfig = {
+      apiKey: "AIzaSyD87xVN9PcOYcZyJaekfcnx5efbs1Z9ZVM",
+      authDomain: "label-gallery.firebaseapp.com",
+      projectId: "label-gallery",
+      storageBucket: "label-gallery.appspot.com",
+      messagingSenderId: "532506561535",
+      appId: "1:532506561535:web:25cbdb51c5b068f0b1b5ca",
+      measurementId: "G-G8WMWHYELC"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const storage = firebase.storage();
+    const db = firebase.firestore();
+
+    // Elements
+    const gallery = document.getElementById('gallery');
+    const navButtons = document.querySelectorAll('.nav-btn');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const uploadModal = document.getElementById('uploadModal');
+    const closeUpload = document.getElementById('closeUpload');
+    const uploadForm = document.getElementById('uploadForm');
+    const progressWrap = document.getElementById('uploadProgress');
+    const progressBar = document.getElementById('progressBar');
+
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightboxImg');
+    const lightboxCaption = document.getElementById('lightboxCaption');
+    const closeLightbox = document.getElementById('closeLightbox');
+
+    let currentCategory = 'all';
+
+    // Listen nav clicks
+    navButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        navButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentCategory = btn.dataset.cat;
+        renderGallery();
+      });
+    });
+
+    // Open upload modal
+    uploadBtn.addEventListener('click', () => {
+      uploadModal.classList.add('open');
+      uploadModal.setAttribute('aria-hidden', 'false');
+    });
+    closeUpload.addEventListener('click', () => {
+      uploadModal.classList.remove('open');
+      uploadModal.setAttribute('aria-hidden', 'true');
+    });
+
+    // Lightbox close
+    closeLightbox.addEventListener('click', () => hideLightbox());
+
+    function showLightbox(url, name) {
+      lightboxImg.src = url;
+      lightboxImg.alt = name;
+      lightboxCaption.textContent = name;
+      lightbox.classList.add('open');
+      lightbox.setAttribute('aria-hidden', 'false');
+    }
+    function hideLightbox() {
+      lightbox.classList.remove('open');
+      lightbox.setAttribute('aria-hidden', 'true');
+      lightboxImg.src = '';
+    }
+
+    // Upload form
+    uploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById('labelFile');
+      const nameInput = document.getElementById('labelName');
+      const category = document.getElementById('labelCategory').value;
+      if (!fileInput.files.length) return alert('یک فایل انتخاب کنید');
+
+      const file = fileInput.files[0];
+      const fileName = Date.now() + '_' + file.name;
+      const storageRef = storage.ref().child('images/' + fileName);
+      const uploadTask = storageRef.put(file);
+
+      progressWrap.hidden = false;
+      uploadTask.on('state_changed', snapshot => {
+        const percent = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        progressBar.style.width = percent + '%';
+      }, error => {
+        alert('خطا در آپلود: ' + error.message);
+        progressWrap.hidden = true;
+      }, async () => {
+        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+        // save metadata to Firestore
+        await db.collection('labels').add({
+          name: nameInput.value || file.name,
+          url: downloadURL,
+          category: category,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        // reset form
+        uploadForm.reset();
+        progressBar.style.width = '0%';
+        progressWrap.hidden = true;
+        uploadModal.classList.remove('open');
+        uploadModal.setAttribute('aria-hidden', 'true');
+      });
+    });
+
+    // Real-time listener to Firestore 'labels' collection
+    let labelsCache = [];
+    db.collection('labels').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+      labelsCache = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        labelsCache.push({
+          id: doc.id,
+          name: data.name || '',
+          url: data.url,
+          category: data.category || 'all',
+          createdAt: data.createdAt ? data.createdAt.toDate() : new Date()
+        });
+      });
+      renderGallery();
+    }, err => {
+      console.error('Firestore read error:', err);
+    });
+
+    function renderGallery() {
+      gallery.innerHTML = '';
+      const items = labelsCache.filter(item => currentCategory === 'all' ? true : item.category === currentCategory);
+      if (!items.length) {
+        gallery.innerHTML = '<p class="empty">هیچ برچسبی برای این دسته وجود ندارد.</p>';
+        return;
+      }
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        const img = document.createElement('img');
+        img.src = item.url;
+        img.alt = item.name;
+        img.loading = 'lazy';
+        img.addEventListener('click', () => showLightbox(item.url, item.name));
+        const caption = document.createElement('div');
+        caption.className = 'caption';
+        caption.textContent = item.name;
+        card.appendChild(img);
+        card.appendChild(caption);
+        gallery.appendChild(card);
+      });
+    }
+
+    // Close modals when clicking outside content
+    window.addEventListener('click', (e) => {
+      if (e.target === uploadModal) {
+        uploadModal.classList.remove('open');
+        uploadModal.setAttribute('aria-hidden', 'true');
+      }
+      if (e.target === lightbox) {
+        hideLightbox();
+      }
+    });
   </script>
+
+  <script src="main.js"></script>
 </body>
 </html>
